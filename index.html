@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1v1 Arena — Ralo</title>
+<style>
+  :root { --bg:#0f1115; --card:#181b22; --text:#e6e8ee; --muted:#8b93a7; --accent:#ff7a00; --win:#3ddc84; --lose:#ff5c5c; --warn:#ffd27a; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--text); }
+  header { padding:16px 24px; border-bottom:1px solid #23262f; display:flex; justify-content:space-between; align-items:center; }
+  header h1 { font-size:18px; margin:0; letter-spacing:.5px; }
+  .tag { color:var(--muted); font-size:12px; }
+  main { max-width:860px; margin:0 auto; padding:24px 16px 60px; display:grid; gap:20px; }
+  .card { background:var(--card); border-radius:14px; padding:20px; border:1px solid #23262f; }
+  .profile { display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  .avatar { width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg,#ff7a00,#ff3d00); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:22px; background-size: cover; background-position: center; border: 2px solid var(--accent); }
+  .ralo { font-size:34px; font-weight:800; color:var(--accent); line-height:1; }
+  .ralo small { font-size:13px; color:var(--muted); font-weight:400; margin-left:4px; }
+  .stats { display:flex; gap:22px; margin-top:8px; font-size:14px; color:var(--muted); }
+  .stats b { color:var(--text); }
+  button { cursor:pointer; border:none; border-radius:10px; padding:12px 18px; font-size:14px; font-weight:600; }
+  .btn-primary { background:var(--accent); color:#111; }
+  .btn-primary:disabled { opacity:.45; cursor:not-allowed; }
+  .btn-accept { background:var(--win); color:#08210f; }
+  .btn-cancel { background:#3a2020; color:#ff9a9a; }
+  .btn-exit { background:#3a2020; color:#ff9a9a; }
+  .btn-ghost { background:#23262f; color:var(--text); }
+  .btn-logout { background:transparent; border:1px solid #3a2020; color:#ff9a9a; padding:4px 10px; font-size:11px; border-radius:6px; }
+  .match-row { display:flex; justify-content:space-between; align-items:center; padding:12px 6px; border-bottom:1px solid #23262f; cursor:pointer; }
+  .match-row:hover { background:#1f232c; border-radius:8px; }
+  .score { font-weight:700; } .map { color:var(--muted); font-size:13px; margin-left:6px; }
+  .details { margin-top:10px; padding:12px; background:#12151b; border-radius:10px; font-size:14px; color:var(--muted); display:none; }
+  .details.open { display:block; }
+  .queue-box { display:none; margin-top:14px; padding:14px; border-radius:10px; background:#12151b; }
+  .queue-box.show { display:block; }
+  code { background:#0b0d11; padding:3px 7px; border-radius:6px; color:#ffd7a8; font-size:13px; }
+  input[type=text], input[type=number] { width:100%; padding:10px; border-radius:8px; border:1px solid #2a2f3a; background:#0b0d11; color:var(--text); font-size:14px; margin-bottom:10px; }
+  .warn { color:var(--lose); font-size:13px; margin-top:8px; }
+  .ban-banner { display:none; background:#3a2020; color:#ff9a9a; padding:12px 16px; border-radius:10px; font-size:14px; align-items:center; justify-content:space-between; }
+  .ban-banner.show { display:flex; }
+  .btn-unban { background:#ff9a9a; color:#3a2020; padding:6px 12px; font-size:12px; border-radius:6px; }
+  #authScreen, #appScreen { display:none; }
+  #authScreen.show, #appScreen.show { display:block; }
+  .auth-wrap { max-width:460px; margin:60px auto; padding:0 16px; }
+  .auth-wrap h2 { margin:0 0 6px; font-size:22px; }
+  .auth-wrap .tag { margin-bottom:18px; display:block; }
+  .auth-step { display:none; } .auth-step.show { display:block; }
+  .bot-wait { text-align:center; padding:20px 0; }
+  .bot-wait .icon { font-size:40px; margin-bottom:15px; }
+  .score-inputs { display:flex; gap:10px; align-items:center; margin-top:10px; }
+  .score-inputs input { width:60px; text-align:center; font-size:20px; font-weight:bold; }
+</style>
+</head>
+<body>
+<header><h1>1v1 ARENA <span class="tag">Игра 1 vs 1</span></h1></header>
+
+<div id="authScreen">
+  <div class="auth-wrap">
+    <div class="card">
+      <h2>Регистрация</h2>
+      <div class="auth-step show" id="authStep1">
+        <span class="tag">Вставьте ссылку на свой профиль Steam. Бот отправит вам заявку в друзья.</span>
+        <input type="text" id="regSteam" placeholder="https://steamcommunity.com/id/ваш_ник">
+        <button class="btn-primary" id="regSubmit" style="width:100%;">Зарегистрироваться</button>
+        <div id="regMsg" class="warn"></div>
+      </div>
+      <div class="auth-step" id="authStep2">
+        <div class="bot-wait">
+          <div class="icon">🤖</div>
+          <div style="font-weight:600; margin-bottom:8px;">Профиль найден!</div>
+          <div class="tag" style="margin-bottom:15px;">Бот сейчас отправит вам заявку в друзья. Зайдите в Steam и примите её.</div>
+          <div class="tag" style="color:var(--accent); font-size:14px;">Ожидаем подтверждения...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="appScreen">
+<main>
+  <div class="ban-banner" id="banBanner">
+    <span id="banText">Вы отстранены от игр.</span>
+    <button class="btn-unban" onclick="clearBan()">[Тест] Убрать бан</button>
+  </div>
+
+  <section class="card profile">
+    <div class="avatar" id="avatarImg">?</div>
+    <div>
+      <div style="font-weight:700;font-size:18px; display:flex; align-items:center; gap:10px;">
+        <span id="profileName">—</span>
+        <button class="btn-logout" id="logoutBtn">Выйти</button>
+      </div>
+      <div class="ralo" id="raloValue">— <small>Ralo</small></div>
+      <div class="stats">
+        <span>Килы: <b id="kills">—</b></span><span>Смерти: <b id="deaths">—</b></span><span>Матчи: <b id="matches">—</b></span>
+      </div>
+    </div>
+    <div style="margin-left:auto;"><button class="btn-primary" id="queueBtn">Подбор матча</button></div>
+  </section>
+
+  <section class="card" id="queueCard" style="display:none;">
+    <div style="font-weight:600;margin-bottom:6px;">Поиск соперника…</div>
+    <div class="tag" id="queueStatus">Ожидание</div>
+    <div class="queue-box" id="acceptBox">
+      <div style="margin-bottom:10px;">Соперник найден: <b id="opponentName">—</b></div>
+      <div style="display:flex;gap:10px;"><button class="btn-accept" id="acceptBtn">Принять</button><button class="btn-cancel" id="cancelAcceptBtn">Отменить</button></div>
+    </div>
+    
+    <div class="queue-box" id="connectBox">
+      <div style="margin-bottom:8px;">Матч создан. Подключение:</div>
+      <div style="margin-bottom:10px;">Сервер: <code>144.48.106.196:27035</code></div>
+      <button class="btn-ghost" id="connectBtn" style="margin-bottom:15px;">Быстрое подключение</button>
+      
+      <div style="border-top:1px solid #23262f; padding-top:15px;">
+        <div style="font-weight:600; margin-bottom:10px;">Введите результат матча:</div>
+        <div class="score-inputs">
+          <input type="number" id="score1" placeholder="0" min="0" max="30">
+          <span>:</span>
+          <input type="number" id="score2" placeholder="0" min="0" max="30">
+        </div>
+        <button class="btn-primary" id="submitScoreBtn" style="margin-top:10px;">Завершить матч</button>
+      </div>
+
+      <div style="margin-top:14px;"><button class="btn-exit" id="exitMatchBtn">Выйти из матча (Бан)</button><div class="warn">Выход = отстранение от игр на 2 часа.</div></div>
+    </div>
+
+    <div style="margin-top:14px;"><button class="btn-cancel" id="cancelQueueBtn">Отменить подбор</button></div>
+  </section>
+
+  <section class="card"><div style="font-weight:600;margin-bottom:8px;">История матчей</div><div id="matchList">Загрузка...</div></section>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://mcdzqrvkaabjoebmixxs.supabase.co";
+const SUPABASE_KEY = "sb_publishable_1KDGaUzPpxbIDM8W3oMXmw_IKHBsePW";
+const dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const STORAGE_USER = "ralo_user";
+const BAN_KEY = "ralo_ban_until";
+
+let currentUserIP = null;
+
+function calcRalo(k, d) { if (k === 0 && d === 0) return 0; return k / Math.max(d, 1); }
+function formatRalo(r) { return r.toFixed(2); }
+function getUser() { try { return JSON.parse(localStorage.getItem(STORAGE_USER) || "null"); } catch { return null; } }
+function saveUser(u) { localStorage.setItem(STORAGE_USER, JSON.stringify(u)); }
+function showAuth() { document.getElementById("authScreen").classList.add("show"); document.getElementById("appScreen").classList.remove("show"); }
+function showApp() { document.getElementById("appScreen").classList.add("show"); document.getElementById("authScreen").classList.remove("show"); }
+
+let currentSteamId = null;
+let currentNick = null;
+let botCheckInterval = null;
+
+async function checkSessionByIP() {
+  try {
+    const res = await fetch('https://api.ipify.org?format=json');
+    const ipData = await res.json();
+    currentUserIP = ipData.ip;
+
+    const { data: session, error } = await dbClient.from('sessions').select('*').eq('ip_address', currentUserIP).single();
+    if (session) {
+      const { data: playerData } = await dbClient.from('players').select('*').eq('steam_id64', session.steam_id64).single();
+      if (playerData) {
+        const user = { nick: playerData.nick, steamId64: playerData.steam_id64, verified: true, kills: playerData.kills, deaths: playerData.deaths, matches: playerData.matches };
+        saveUser(user);
+        showApp(); renderProfile(); loadMatches(); renderBan();
+        return true;
+      }
+    }
+  } catch (e) {}
+  return false;
+}
+
+document.getElementById("regSubmit").addEventListener("click", async () => {
+  const link = document.getElementById("regSteam").value.trim();
+  const msg = document.getElementById("regMsg");
+  
+  if (!/^https?:\/\/steamcommunity\.com\/(id|profiles)\//.test(link)) { msg.textContent = "Неверная ссылка."; return; }
+  msg.style.color = "var(--warn)"; msg.textContent = "Ищем профиль...";
+
+  try {
+    const { data: profileData, error: profileError } = await dbClient.functions.invoke('get-steam-profile', { body: { steamUrl: link } });
+    if (profileError || !profileData || !profileData.response || !profileData.response.players || !profileData.response.players[0]) {
+      throw new Error("Профиль не найден.");
+    }
+    
+    const player = profileData.response.players[0];
+    currentSteamId = player.steamid;
+    currentNick = player.personaname;
+
+    const { error: dbError } = await dbClient.from('players').upsert({ 
+      steam_id64: currentSteamId, nick: currentNick, is_confirmed: false, request_sent: false 
+    }, { onConflict: 'steam_id64' });
+    
+    if (dbError) throw new Error("Ошибка базы: " + dbError.message);
+
+    document.getElementById("authStep1").classList.remove("show");
+    document.getElementById("authStep2").classList.add("show");
+
+    clearInterval(botCheckInterval);
+    botCheckInterval = setInterval(async () => {
+      const { data } = await dbClient.from('players').select('is_confirmed, kills, deaths, matches').eq('steam_id64', currentSteamId).single();
+      if (data && data.is_confirmed) {
+        clearInterval(botCheckInterval);
+        if (currentUserIP) await dbClient.from('sessions').upsert({ ip_address: currentUserIP, steam_id64: currentSteamId, nick: currentNick });
+        const user = { nick: currentNick, steamId64: currentSteamId, verified: true, kills: data.kills, deaths: data.deaths, matches: data.matches };
+        saveUser(user);
+        showApp(); renderProfile(); loadMatches();
+      }
+    }, 3000);
+  } catch (err) { msg.style.color = "var(--lose)"; msg.textContent = err.message; }
+});
+
+document.getElementById("logoutBtn").addEventListener("click", async () => {
+  const u = getUser();
+  
+  // Сначала отправляем команду боту и ЖДЕМ ответа
+  if (u && u.steamId64) {
+    await dbClient.from('players').update({ remove_friend: true }).eq('steam_id64', u.steamId64);
+  }
+
+  // Потом удаляем сессию
+  if (currentUserIP) {
+    await dbClient.from('sessions').delete().eq('ip_address', currentUserIP);
+  }
+  
+  // И выходим
+  localStorage.removeItem(STORAGE_USER); 
+  location.reload(); 
+});
+
+async function renderProfile() {
+  const u = getUser(); if (!u) return;
+  document.getElementById("profileName").textContent = u.nick;
+  document.getElementById("kills").textContent = u.kills; document.getElementById("deaths").textContent = u.deaths; document.getElementById("matches").textContent = u.matches;
+  document.getElementById("raloValue").innerHTML = formatRalo(calcRalo(u.kills, u.deaths)) + ' <small>Ralo</small>';
+  
+  const avatarEl = document.getElementById("avatarImg"); 
+  avatarEl.textContent = u.nick.slice(0,2).toUpperCase();
+  try {
+    const { data } = await dbClient.functions.invoke('get-steam-profile', { body: { steamid: u.steamId64 } });
+    if (data && data.response && data.response.players[0]) {
+      avatarEl.style.backgroundImage = `url(${data.response.players[0].avatarfull})`; avatarEl.style.color = "transparent"; 
+    }
+  } catch (e) {}
+}
+
+async function loadMatches() {
+  const list = document.getElementById("matchList"); const u = getUser();
+  const { data } = await dbClient.from('matches').select('*').or(`player1.eq.${u.nick},player2.eq.${u.nick}`).order('played_at', { ascending: false });
+  list.innerHTML = "";
+  if (!data || data.length === 0) { list.innerHTML = `<div class="tag" style="padding:12px 0;">Матчей пока нет.</div>`; return; }
+  data.forEach(m => {
+    const row = document.createElement("div"); row.className = "match-row";
+    row.innerHTML = `<div><span class="score">${m.player1} ${m.score1} : ${m.score2} ${m.player2}</span><span class="map">${m.map}</span></div><div class="tag">${m.winner === "ничья" ? "ничья" : "победил " + m.winner}</div>`;
+    row.onclick = () => { const d = row.nextElementSibling; d.classList.toggle("open"); };
+    const details = document.createElement("div"); details.className = "details";
+    details.innerHTML = `Карта: <b>${m.map}</b> · Победитель: <b>${m.winner}</b>`;
+    list.appendChild(row); list.appendChild(details);
+  });
+}
+
+// ПОДБОР (С БОТОМ ЧЕРЕЗ 25 СЕКУНД)
+const queueBtn = document.getElementById("queueBtn"), queueCard = document.getElementById("queueCard"), queueStatus = document.getElementById("queueStatus");
+const acceptBox = document.getElementById("acceptBox"), connectBox = document.getElementById("connectBox"), cancelQueueBtn = document.getElementById("cancelQueueBtn"), exitMatchBtn = document.getElementById("exitMatchBtn");
+let queueInterval = null;
+let botTimeout = null;
+let currentOpponent = null;
+
+queueBtn.addEventListener("click", async () => {
+  if (Date.now() < Number(localStorage.getItem(BAN_KEY) || 0)) { alert("Вы отстранены."); return; }
+  const u = getUser(); queueBtn.disabled = true; queueCard.style.display = "block"; queueStatus.textContent = "Ожидание игрока...";
+  acceptBox.classList.remove("show"); connectBox.classList.remove("show"); cancelQueueBtn.style.display = "inline-block";
+
+  const twoMinsAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString(); await dbClient.from('queue').delete().lt('joined_at', twoMinsAgo);
+  await dbClient.from('queue').upsert({ steam_id64: u.steamId64, nick: u.nick }, { onConflict: 'steam_id64' });
+
+  // Поиск живого игрока
+  queueInterval = setInterval(async () => {
+    const { data } = await dbClient.from('queue').select('*');
+    const opponent = data.find(p => p.steam_id64 !== u.steamId64);
+    if (opponent) { 
+      clearInterval(queueInterval); 
+      clearTimeout(botTimeout); // ОТМЕНЯЕМ БОТА, ЕСЛИ НАШЛИ ЖИВОГО
+      currentOpponent = opponent;
+      document.getElementById("opponentName").textContent = opponent.nick; 
+      queueStatus.textContent = "Соперник найден!"; 
+      cancelQueueBtn.style.display = "none"; 
+      acceptBox.classList.add("show"); 
+    }
+  }, 2000);
+
+  // Таймер на бота (25 секунд)
+  botTimeout = setTimeout(async () => {
+    clearInterval(queueInterval); // Останавливаем поиск живых
+    await dbClient.from('queue').delete().eq('steam_id64', u.steamId64); // Убираем себя из очереди
+    
+    currentOpponent = { nick: "BOT_Vasya", steam_id64: "BOT" }; // Создаем бота
+    document.getElementById("opponentName").textContent = "BOT_Vasya 🤖"; 
+    queueStatus.textContent = "Живых игроков нет. Игра против бота!"; 
+    cancelQueueBtn.style.display = "none"; 
+    acceptBox.classList.add("show"); 
+  }, 25000);
+});
+
+cancelQueueBtn.onclick = async () => { 
+  clearInterval(queueInterval); 
+  clearTimeout(botTimeout); // Очищаем таймер бота
+  await dbClient.from('queue').delete().eq('steam_id64', getUser().steamId64); 
+  resetQueueUI(); 
+};
+
+document.getElementById("cancelAcceptBtn").onclick = async () => { 
+  clearInterval(queueInterval); 
+  clearTimeout(botTimeout);
+  await dbClient.from('queue').delete().eq('steam_id64', getUser().steamId64); 
+  resetQueueUI(); 
+};
+
+document.getElementById("acceptBtn").onclick = async () => { 
+  await dbClient.from('queue').delete().eq('steam_id64', getUser().steamId64); 
+  acceptBox.classList.remove("show"); 
+  queueStatus.textContent = "Матч создан."; 
+  connectBox.classList.add("show"); 
+};
+
+function resetQueueUI() { 
+  queueCard.style.display = "none"; 
+  acceptBox.classList.remove("show"); 
+  connectBox.classList.remove("show"); 
+  queueBtn.disabled = false; 
+  currentOpponent = null;
+}
+
+exitMatchBtn.onclick = () => { if (!confirm("Выйти? Бан.")) return; localStorage.setItem(BAN_KEY, String(Date.now() + 2 * 3600 * 1000)); renderBan(); resetQueueUI(); };
+
+document.getElementById("submitScoreBtn").addEventListener("click", async () => {
+  const s1 = parseInt(document.getElementById("score1").value);
+  const s2 = parseInt(document.getElementById("score2").value);
+  const u = getUser();
+  const map = prompt("Введите карту (inferno, nuke, cache):", "inferno");
+
+  if (isNaN(s1) || isNaN(s2)) { alert("Введите счет цифрами!"); return; }
+  if (!map) return;
+
+  const btn = document.getElementById("submitScoreBtn");
+  btn.disabled = true; btn.textContent = "Сохранение...";
+
+  try {
+    const { error } = await dbClient.rpc('finish_match', {
+      p1_nick: u.nick,
+      p2_nick: currentOpponent.nick,
+      p1_score: s1,
+      p2_score: s2,
+      map_name: map.toLowerCase()
+    });
+
+    if (error) throw error;
+    alert("Матч успешно записан!");
+    resetQueueUI();
+    
+    const { data: freshData } = await dbClient.from('players').select('*').eq('steam_id64', u.steamId64).single();
+    saveUser({ ...u, kills: freshData.kills, deaths: freshData.deaths, matches: freshData.matches });
+    renderProfile(); loadMatches();
+
+  } catch (err) { alert("Ошибка записи: " + err.message); } 
+  finally { btn.disabled = false; btn.textContent = "Завершить матч"; }
+});
+
+function renderBan() {
+  const b = document.getElementById("banBanner"), until = Number(localStorage.getItem(BAN_KEY) || 0);
+  if (Date.now() < until) { document.getElementById("banText").textContent = `Бан: ~${Math.ceil((until - Date.now()) / 60000)} мин.`; b.classList.add("show"); } else b.classList.remove("show");
+}
+window.clearBan = () => { localStorage.removeItem(BAN_KEY); renderBan(); }
+document.getElementById("connectBtn").onclick = () => { navigator.clipboard?.writeText("connect 144.48.106.196:27035"); alert("Скопировано!"); };
+
+(async function init() {
+  const hasSession = await checkSessionByIP();
+  if (!hasSession) {
+    const u = getUser(); 
+    if (u && u.verified) { showApp(); renderProfile(); loadMatches(); renderBan(); } 
+    else showAuth();
+  }
+})();
+</script>
+</body>
+</html>
